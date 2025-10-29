@@ -4,3 +4,4 @@ python-dotenv
 tqdm
 flask
 jsonify
+gunicorn
