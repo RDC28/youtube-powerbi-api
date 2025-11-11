@@ -28,6 +28,15 @@ def get_channel_stats(api_key, channel_id):
     stats = item["statistics"]
     snippet = item["snippet"]
 
+    # profile image (best available)
+    thumbs = snippet.get("thumbnails", {}) or {}
+    profile_pic = (
+        thumbs.get("high", {},).get("url")
+        or thumbs.get("medium", {},).get("url")
+        or thumbs.get("default", {},).get("url")
+        or ""
+    )
+
     return {
         "Channel ID": channel_id,
         "Channel Title": snippet["title"],
@@ -35,6 +44,7 @@ def get_channel_stats(api_key, channel_id):
         "Subscribers": int(stats.get("subscriberCount", 0)),
         "Total Views": int(stats.get("viewCount", 0)),
         "Total Videos": int(stats.get("videoCount", 0)),
+        "Profile Picture URL": profile_pic,
     }
 
 
@@ -108,7 +118,7 @@ def get_video_details(api_key, video_ids):
 def generate_mock_geo_data(total_views):
     countries = ["US", "IN", "BR", "DE", "GB", "CA", "FR", "PH", "ID", "AU"]
     random_views = [random.randint(1, 100) for _ in countries]
-    scale = total_views / sum(random_views)
+    scale = total_views / max(sum(random_views), 1)
     return (
         pd.DataFrame(
             {"Country": countries, "Views": [int(v * scale) for v in random_views]}
@@ -150,11 +160,8 @@ def get_youtube_data(channel_id: str):
 
 
 if __name__ == "__main__":
-    # test run
+    # quick local test
     data = get_youtube_data("UCL0LGQQ-aT5CVsYOhH3tv5Q")
-    for name, df in zip(
-        ["channel", "videos", "top_videos", "geo"],
-        data,
-    ):
+    for name, df in zip(["channel", "videos", "top_videos", "geo"], data):
         print(f"\n{name} preview:")
         print(df.head())
