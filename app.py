@@ -10,9 +10,16 @@ API_KEY = os.getenv("YT_API_KEY")
 
 app = Flask(__name__)
 
-# --- helper to convert DataFrames safely ---
+
 def df_to_json(df):
-    return df.to_dict(orient="records")
+    # convert DataFrame to serializable JSON; handle datetimes
+    if df is None:
+        return []
+    json = df.copy()
+    for c in json.columns:
+        if pd.api.types.is_datetime64_any_dtype(json[c]):
+            json[c] = json[c].dt.strftime("%Y-%m-%d")
+    return json.to_dict(orient="records")
 
 
 @app.route("/")
@@ -55,7 +62,11 @@ def get_data():
     if not channel_id:
         return {"error": "Missing channel_id or channel_name parameter"}, 400
 
-    df_channel, df_videos, df_top_videos, df_geo = get_youtube_data(channel_id)
+    try:
+        df_channel, df_videos, df_top_videos, df_geo = get_youtube_data(channel_id)
+    except Exception as e:
+        return {"error": "Failed to fetch data", "details": str(e)}, 500
+
     return {
         "channel_info": df_to_json(df_channel),
         "videos": df_to_json(df_videos),
